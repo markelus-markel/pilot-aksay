@@ -123,6 +123,17 @@
   .leaflet-popup-content{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; line-height:1.5; }
   .leaflet-popup-content b{ font-family:'IBM Plex Mono', monospace; }
 
+  /* Mobile layout: stack map above sidebar instead of squeezing them side by side */
+  @media (max-width: 820px){
+    .body-row{ flex-direction: column; overflow-y: auto; }
+    #map{ flex: none; height: 55vh; min-height: 320px; width: 100%; }
+    aside{ width: 100%; max-height: none; border-left: none; border-top: 1px solid var(--line); }
+    header{ padding: 14px 16px 12px; }
+    h1{ font-size: 18px; }
+    .subtitle{ max-width: none; }
+    #themeToggle{ order: -1; }
+  }
+
   /* Basemap tiles: inverted to light under the light theme via --map-tiles-filter */
   .map-base-layer{ filter: var(--map-tiles-filter); }
 
@@ -244,6 +255,8 @@ if (window.matchMedia){
 }
 
 const map = L.map('map', { zoomControl: true }).setView([43.32, 76.95], 12);
+window.addEventListener('resize', () => map.invalidateSize());
+window.addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 200));
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 19,
