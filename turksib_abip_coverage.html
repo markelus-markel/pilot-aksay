@@ -125,10 +125,11 @@
 
   /* Mobile layout: map stays full-size; sidebar becomes a slide-in drawer toggled from the header */
   @media (max-width: 820px){
-    header{ padding: 14px 16px 12px; }
+    header{ padding: 14px 16px 12px; flex-direction: column; align-items: flex-start; gap: 10px; }
     h1{ font-size: 18px; }
-    .subtitle{ max-width: none; }
-    #mobileSidebarToggle{ display:inline-block; order: -1; }
+    .eyebrow, .subtitle, #headerStatus{ display: none; }
+    #themeToggle{ position: fixed; top: 10px; right: 10px; z-index: 2100; }
+    #mobileSidebarToggle{ display:inline-block; }
     #asideCloseBtn{ display:inline-flex; }
     aside{
       position: fixed;
