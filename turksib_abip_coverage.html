@@ -123,15 +123,24 @@
   .leaflet-popup-content{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; line-height:1.5; }
   .leaflet-popup-content b{ font-family:'IBM Plex Mono', monospace; }
 
-  /* Mobile layout: stack map above sidebar instead of squeezing them side by side */
+  /* Mobile layout: map stays full-size; sidebar becomes a slide-in drawer toggled from the header */
   @media (max-width: 820px){
-    .body-row{ flex-direction: column; overflow-y: auto; }
-    #map{ flex: none; height: 55vh; min-height: 320px; width: 100%; }
-    aside{ width: 100%; max-height: none; border-left: none; border-top: 1px solid var(--line); }
     header{ padding: 14px 16px 12px; }
     h1{ font-size: 18px; }
     .subtitle{ max-width: none; }
-    #themeToggle{ order: -1; }
+    #mobileSidebarToggle{ display:inline-block; order: -1; }
+    #asideCloseBtn{ display:inline-flex; }
+    aside{
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      max-height: none;
+      border-left: none;
+      transform: translateY(-100%);
+      transition: transform 0.25s ease;
+      z-index: 1500;
+    }
+    aside.open{ transform: translateY(0); }
   }
 
   /* Basemap tiles: inverted to light under the light theme via --map-tiles-filter */
@@ -155,6 +164,7 @@
       <div class="subtitle">Лёгкая OSM-выборка многоквартирных домов района, сопоставленная с официальной статистикой акимата. Не является полным ABIP-пайплайном (без Overture, дедупликации и ручной верификации) — предварительная демонстрация покрытия.</div>
     </div>
     <div class="h-status" id="headerStatus">инициализация…</div>
+    <button id="mobileSidebarToggle" style="display:none; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-family:'IBM Plex Mono', monospace; font-size:12px; cursor:pointer;">☰ Точки сверки</button>
     <div id="themeToggle" style="display:flex; gap:2px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; padding:2px; font-family:'IBM Plex Mono', monospace; font-size:11px;"></div>
   </header>
 
@@ -167,6 +177,7 @@
     </div>
 
     <aside>
+      <button id="asideCloseBtn" style="display:none; align-self:flex-end; background:none; border:1px solid var(--line); color:var(--text-dim); border-radius:6px; padding:6px 12px; font-family:'IBM Plex Mono', monospace; font-size:12px; cursor:pointer;">✕ Закрыть</button>
       <div class="card gap-card" id="gapCard" style="display:none;">
         <h2>Диагностический разрыв</h2>
         <div class="gap-headline" id="gapHeadline">—</div>
@@ -253,6 +264,13 @@ if (window.matchMedia){
     if (getStoredThemePref() === 'system') applyTheme('system');
   });
 }
+
+const asideEl = document.querySelector('aside');
+document.getElementById('mobileSidebarToggle').onclick = () => {
+  asideEl.classList.add('open');
+  setTimeout(() => map.invalidateSize(), 260); // in case layout shifted underneath
+};
+document.getElementById('asideCloseBtn').onclick = () => asideEl.classList.remove('open');
 
 const map = L.map('map', { zoomControl: true }).setView([43.32, 76.95], 12);
 window.addEventListener('resize', () => map.invalidateSize());
