@@ -288,10 +288,16 @@ function setLocateStatus(msg, isError){
 
 document.getElementById('locateBtn').onclick = () => {
   setLocateStatus('Определяю местоположение…', false);
-  map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: true, timeout: 10000 });
+  locateAttempt(true);
 };
 
+function locateAttempt(highAccuracy){
+  map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: highAccuracy, timeout: 20000 });
+}
+
+let triedFallback = false;
 map.on('locationfound', (e) => {
+  triedFallback = false;
   if (userMarker) map.removeLayer(userMarker);
   if (userAccuracyCircle) map.removeLayer(userAccuracyCircle);
   userMarker = L.circleMarker(e.latlng, {
@@ -304,8 +310,16 @@ map.on('locationfound', (e) => {
 });
 
 map.on('locationerror', (e) => {
+  if (!triedFallback){
+    triedFallback = true;
+    setLocateStatus('Точный GPS не успел ответить, пробую по сети…', false);
+    locateAttempt(false);
+    return;
+  }
+  triedFallback = false;
   let reason = e.message || 'неизвестная ошибка';
   if (/denied/i.test(reason)) reason = 'доступ к геолокации запрещён в настройках браузера/сайта';
+  if (/timeout/i.test(reason)) reason = 'сигнал не пойман (слабый GPS/сеть) — нажмите кнопку ещё раз, лучше на открытом месте';
   setLocateStatus('Не удалось определить местоположение: ' + reason, true);
 });
 
