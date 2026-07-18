@@ -1,546 +1,790 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<script>
-  (function(){
-    try{
-      var pref = localStorage.getItem('turksib_theme') || 'system';
-      var resolved = pref === 'system'
-        ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        : pref;
-      document.documentElement.setAttribute('data-theme', resolved);
-    } catch(e){ document.documentElement.setAttribute('data-theme', 'dark'); }
-  })();
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#12161c">
+<meta name="theme-color" content="#1B3A5C">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Турксибский район — ABIP, карта покрытия</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Пилот Аксай 1–4 — реальный реестр</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
-  :root, [data-theme="dark"]{
-    --bg: #12161c;
-    --panel: #191f27;
-    --panel-2: #1f2733;
-    --line: #2b3542;
-    --text: #e8e6e0;
-    --text-dim: #93a0ad;
-    --teal: #4a9b8e;
-    --teal-dim: rgba(74,155,142,0.28);
-    --amber: #c98a3e;
-    --amber-dim: rgba(201,138,62,0.28);
-    --red: #b5533c;
-    --red-dim: rgba(181,83,60,0.35);
-    --map-tiles-filter: none;
-  }
-  [data-theme="light"]{
-    --bg: #f4f2ee;
-    --panel: #ffffff;
-    --panel-2: #f0ede6;
-    --line: #ddd6ca;
-    --text: #23201b;
-    --text-dim: #665f52;
-    --teal: #2f7a6e;
-    --teal-dim: rgba(47,122,110,0.16);
-    --amber: #9c6226;
-    --amber-dim: rgba(156,98,38,0.18);
-    --red: #9c4530;
-    --red-dim: rgba(156,69,48,0.14);
-    --map-tiles-filter: invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.95);
-  }
-  *{ box-sizing: border-box; -webkit-tap-highlight-color:transparent; }
-  html, body{ margin:0; padding:0; background: var(--bg); color: var(--text);
-    font-family: 'IBM Plex Sans', -apple-system, sans-serif; }
-  body{ max-width: 720px; margin: 0 auto; padding-bottom: 40px; }
+:root{
+  --navy:#1B3A5C; --navy-deep:#12283F; --gold:#C9A227; --steward:#54765C;
+  --red:#B23A2F; --amber:#B8860B; --ink:#1A1A2E; --muted:#5A6A7A;
+  --paper:#F7F5EF; --line:#E1DDD1; --white:#FFFFFF; --blue:#2A6E96;
+  --mono: ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --sans:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.5;font-size:15px;
+  max-width:560px;margin-left:auto;margin-right:auto;padding-bottom:40px}
 
-  /* ===== Sticky top bar — mobile-first, single column by default ===== */
-  .topbar{ position: sticky; top:0; z-index:50; background: var(--panel);
-    border-bottom:1px solid var(--line); padding:12px 16px; }
-  .topbar-inner{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .title{ font-size:16px; font-weight:600; letter-spacing:-0.01em; }
-  #themeToggle{ display:flex; gap:2px; background:var(--panel-2); border:1px solid var(--line);
-    border-radius:6px; padding:2px; font-family:'IBM Plex Mono', monospace; font-size:11px; flex-shrink:0; }
+/* ===== TOP BAR (sticky, mobile-first) ===== */
+.topbar{position:sticky;top:0;z-index:50;background:var(--navy);color:#fff;padding:12px 16px}
+.topbar .title{font-family:var(--serif);font-size:17px;font-weight:700}
+.topbar .sub{font-size:11px;opacity:.7;margin-top:1px}
 
-  .wrap{ padding: 14px 14px 0; }
+.banner{background:var(--navy-deep);color:#fff;padding:10px 14px;font-family:var(--mono);font-size:10.5px;line-height:1.5}
+.banner .tag{display:inline-block;background:rgba(84,118,92,.25);border:1px solid rgba(84,118,92,.6);color:#9FD1A8;padding:2px 8px;border-radius:999px;font-weight:700;margin-bottom:6px}
+.banner .note{opacity:.85}
 
-  .panel{ background: var(--panel); border:1px solid var(--line); border-radius:12px;
-    padding:14px; margin-bottom:14px; }
-  .panel h3{ font-size:15px; margin:0 0 4px; }
-  .panel .sub{ font-size:12px; color:var(--text-dim); margin-bottom:10px; line-height:1.5; }
+.wrap{padding:14px 14px 0}
 
-  .map-panel{ padding:10px; }
-  #map{ height: 320px; border-radius:8px; position:relative; background:#0d1116; }
-  #headerStatus{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--text-dim);
-    margin-top:8px; padding: 0 2px; }
-  #headerStatus b{ color: var(--text); }
+.panel{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 14px;margin-bottom:14px}
+.panel h3{font-family:var(--serif);font-size:16px;margin:0 0 4px;color:var(--navy)}
+.panel .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
 
-  .card{ background: var(--panel-2); border:1px solid var(--line); border-radius:6px; padding:14px 16px;
-    margin-bottom:14px; }
-  .card h2{ margin:0 0 10px; font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
-    color: var(--text-dim); font-weight:600; }
-  .stat-row{ display:flex; justify-content:space-between; align-items:baseline; padding:5px 0;
-    border-bottom:1px solid var(--line); font-size:13px; }
-  .stat-row:last-child{ border-bottom:none; }
-  .stat-row .label{ color: var(--text-dim); }
-  .stat-row .value{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
-  .stat-row .value.teal{ color: var(--teal); }
-  .stat-row .value.amber{ color: var(--amber); }
-  .stat-row .value.red{ color: var(--red); }
-  .source-note{ font-size:11px; color: var(--text-dim); margin-top:8px; line-height:1.5; }
+#map{height:300px;border-radius:8px;border:1px solid var(--line)}
+.map-hint{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
 
-  .gap-card{ border-color: var(--red); }
-  .gap-bar-track{ height:10px; background:#0d1116; border-radius:5px; overflow:hidden; margin:10px 0 6px; }
-  .gap-bar-fill{ height:100%; background: linear-gradient(90deg, var(--teal), var(--teal)); width:0%;
-    transition: width 1.1s cubic-bezier(.2,.7,.2,1); }
-  .gap-labels{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace;
-    font-size:11px; color: var(--text-dim); }
-  .gap-headline{ font-size:22px; font-weight:700; font-family:'IBM Plex Mono', monospace; color: var(--red); margin: 2px 0 4px; }
-  .gap-sub{ font-size:12.5px; color: var(--text-dim); line-height:1.5; }
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+/* font-size 16px на инпутах — иначе iOS Safari сам зумит страницу при фокусе */
+.field input,.field select,.field textarea{padding:11px 12px;border-radius:8px;border:1.5px solid var(--line);font-size:16px;font-family:var(--sans);background:var(--paper);width:100%}
+.field .locked{opacity:.6}
+.coord-row{display:flex;gap:8px}
+.coord-row input{flex:1;min-width:0}
 
-  .legend-item{ display:flex; align-items:center; gap:8px; font-size:12.5px; padding:4px 0; }
-  .swatch{ width:13px; height:13px; border-radius:3px; flex-shrink:0; }
-  .swatch.teal{ background: var(--teal); }
-  .swatch.amber{ background: var(--amber); border: 1px dashed #e8c88a; }
-  .swatch.line{ background:transparent; border:2px solid var(--text-dim); width:13px; height:0; }
+.btn{padding:12px 18px;border-radius:9px;border:1.5px solid var(--navy);background:var(--navy);color:#fff;
+  font-weight:700;font-size:14px;cursor:pointer;min-height:44px;width:100%}
+.btn:active{background:var(--navy-deep)}
+.btn.ghost{background:none;color:var(--navy)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#1A1A2E}
+.btn.small{padding:9px 12px;font-size:12.5px;min-height:40px;width:auto}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.btn-row .btn{flex:1;min-width:120px}
 
-  .scope-note{ font-size:12px; color: var(--text-dim); line-height:1.55; }
-  .scope-note strong{ color: var(--text); }
+.status-box{font-size:12.5px;margin-top:8px;min-height:0;font-weight:600}
 
-  #loading{ position:absolute; inset:0; background: rgba(13,17,22,0.92); z-index:1000; border-radius:8px;
-    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
-  .spinner{ width:34px; height:34px; border-radius:50%; border:3px solid var(--line);
-    border-top-color: var(--teal); animation: spin 0.9s linear infinite; }
-  @keyframes spin{ to{ transform: rotate(360deg); } }
-  #loading-msg{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--text-dim); text-align:center; padding:0 16px; }
-  #loading.hidden{ display:none; }
+.building-item{padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;margin-bottom:8px;cursor:pointer;background:var(--paper)}
+.building-item:active{border-color:var(--navy)}
+.building-item.active{border-color:var(--navy);background:#fff;box-shadow:0 0 0 1px var(--navy)}
+.building-item .addr{font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+.building-item .meta{font-size:11px;color:var(--muted);margin-top:2px}
+.empty-state{text-align:center;padding:22px 10px;color:var(--muted);font-size:12.5px}
 
-  .error-box{ background: var(--red-dim); border:1px solid var(--red); border-radius:6px;
-    padding:12px 14px; font-size:12.5px; line-height:1.5; max-width:320px; }
-  .error-box button{ margin-top:10px; background: var(--red); color:#fff; border:none; border-radius:4px;
-    padding:6px 12px; font-size:12px; cursor:pointer; font-family: inherit; }
+.claim-card{border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-bottom:8px}
+.claim-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.claim-card .code{font-family:var(--mono);font-weight:700;font-size:12px;color:var(--navy)}
+.geo-tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:999px;font-weight:700;white-space:nowrap}
+.geo-ok{background:rgba(84,118,92,.15);color:var(--steward)}
+.geo-bad{background:rgba(178,58,47,.13);color:var(--red)}
+.geo-none{background:rgba(90,106,122,.12);color:var(--muted)}
+.claim-photo{width:100%;max-width:100%;border-radius:6px;margin-top:6px;display:block}
 
-  .leaflet-popup-content-wrapper{ background: var(--panel-2); color: var(--text); border-radius:6px; }
-  .leaflet-popup-tip{ background: var(--panel-2); }
-  .leaflet-popup-content{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; line-height:1.5; }
-  .leaflet-popup-content b{ font-family:'IBM Plex Mono', monospace; }
+.state-card{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:12px 13px;margin-bottom:10px}
+.state-card.disputed{border-color:var(--red);background:#FDF6F5}
+.state-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.state-head .code{font-family:var(--mono);font-weight:700;font-size:12.5px;color:var(--navy)}
+.state-head .label{font-size:11.5px;color:var(--muted)}
+.trust-badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;padding:3px 8px;border-radius:999px;font-weight:700;white-space:nowrap}
+.trust-official{background:rgba(201,162,39,.18);color:#8A6D1F}
+.trust-verified{background:rgba(84,118,92,.15);color:var(--steward)}
+.trust-corroborated{background:rgba(63,160,214,.15);color:var(--blue)}
+.trust-unverified{background:rgba(90,106,122,.12);color:var(--muted)}
+.trust-disputed{background:rgba(178,58,47,.13);color:var(--red)}
+.claim-card.retracted{opacity:.55;border-style:dashed}
+.disclosure-tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:999px;font-weight:700;white-space:nowrap;background:rgba(90,106,122,.12);color:var(--muted)}
+.value-row{margin-top:8px;font-size:13px}
+.val-ok{color:var(--steward);font-weight:700}
+.val-defect{color:var(--red);font-weight:700}
+.dispute-sides{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.dispute-side{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:12px}
+.state-contrib{margin-top:8px;font-size:11px;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}
 
-  .checkpoint-btn{ text-align:left; background:var(--bg); color:var(--text); border:1px solid var(--line);
-    border-radius:4px; padding:7px 10px; font-size:12px; cursor:pointer; font-family: inherit; width:100%; }
-  .checkpoint-btn:hover, .checkpoint-btn:active{ border-color: var(--teal); }
+.section-title{font-family:var(--serif);font-size:17px;color:var(--navy);margin:22px 0 4px;padding:0 14px}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:10px;padding:0 14px}
 
-  .map-base-layer{ filter: var(--map-tiles-filter); }
-  [data-theme="dark"] .map-labels-layer{
-    filter: brightness(1.6) saturate(4) sepia(0.35) hue-rotate(-8deg) contrast(1.15);
-  }
-  [data-theme="light"] .map-labels-layer{
-    filter: invert(1) sepia(0.5) saturate(3) hue-rotate(-15deg) contrast(1.1) brightness(0.95);
-  }
+.sync-note{font-size:11px;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:8px;padding:9px 10px;margin-top:10px;line-height:1.5}
 
-  /* ===== Progressive enhancement for tablet/desktop — ignored on phones ===== */
-  @media (min-width:860px){
-    body{ max-width:1280px; }
-    .topbar-inner .title{ font-size:19px; }
-    .desktop-grid{ display:grid; grid-template-columns: 1.4fr 1fr; gap:16px; align-items:start; }
-    #map{ height: calc(100vh - 150px); min-height:480px; }
-    .side-col{ max-height: calc(100vh - 150px); overflow-y:auto; padding-right:4px; }
-  }
+/* Прогрессивное расширение под планшет/десктоп — на телефоне игнорируется */
+@media(min-width:720px){
+  body{max-width:1000px}
+  .desktop-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start}
+  #map{height:420px}
+}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="topbar-inner">
-    <div class="title">Турксибский район — жилой фонд</div>
-    <div id="themeToggle"></div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+    <div>
+      <div class="title">Пилот Аксай 1–4</div>
+      <div class="sub">Ауэзовский район · реальный полевой реестр</div>
+    </div>
+    <div id="versionBadge" style="font-family:var(--mono);font-size:10px;opacity:.75;text-align:right;white-space:nowrap;padding-top:2px"></div>
   </div>
+</div>
+
+<div class="banner">
+  <span class="tag">РЕАЛЬНЫЙ ПИЛОТ · НЕ СИНТЕТИКА</span>
+  <div class="note">Данные хранятся локально на этом устройстве (localStorage) — здесь нет общего сервера. Чтобы объединить наблюдения с другого телефона, используйте «Экспорт» / «Импорт» ниже.</div>
 </div>
 
 <div class="wrap">
   <div class="desktop-grid">
-    <div class="panel map-panel">
-      <div id="map">
-        <div id="loading">
-          <div class="spinner"></div>
-          <div id="loading-msg">Определяю границы района…</div>
+    <div class="panel">
+      <h3>Карта массива</h3>
+      <div class="sub">Тапните по карте — задать точку дома, либо кнопка GPS ниже.</div>
+      <div id="map"></div>
+      <div class="btn-row">
+        <button class="btn small ghost" onclick="loadOSMBuildings()">🏢 Контуры зданий (OSM)</button>
+      </div>
+      <div id="osmStatus" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+      <div class="map-hint">● дом в реестре · тап по контуру здания — адрес и координаты · тап по пустому месту — вручную.</div>
+    </div>
+
+    <div class="panel">
+      <h3>Добавить дом</h3>
+      <div class="sub">Ауэзовский район подставлен по конвенции ABIP.</div>
+
+      <div class="field">
+        <label>Адрес</label>
+        <input type="text" id="addrInput" placeholder="мкр. Аксай-3, дом 7">
+      </div>
+      <div class="field">
+        <label>Координаты</label>
+        <div class="coord-row">
+          <input type="text" id="latInput" placeholder="lat" readonly>
+          <input type="text" id="lngInput" placeholder="lng" readonly>
+        </div>
+        <div class="btn-row">
+          <button class="btn small" onclick="useGPS()">📍 GPS</button>
         </div>
       </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:8px; flex-wrap:wrap;">
-        <div id="headerStatus">инициализация…</div>
-        <button id="locateBtn" style="background:var(--panel-2); color:var(--text); border:1px solid var(--line);
-          border-radius:6px; padding:7px 12px; font-family:'IBM Plex Mono', monospace; font-size:12px;
-          cursor:pointer; white-space:nowrap;">📍 Моё местоположение</button>
+      <div class="field locked">
+        <label>Район (district)</label>
+        <input type="text" value="Ауэзовский" disabled>
       </div>
-      <div id="locateStatus" class="source-note" style="display:none;"></div>
+      <button class="btn gold" onclick="addBuilding()">Добавить в реестр</button>
+      <div id="formStatus" class="status-box"></div>
+
+      <div style="margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Дома в реестре: <span id="buildingCount">0</span></div>
+      <div id="buildingList" style="margin-top:8px"></div>
     </div>
+  </div>
 
-    <div class="side-col">
-      <div class="card gap-card" id="gapCard" style="display:none;">
-        <h2>Диагностический разрыв</h2>
-        <div class="gap-headline" id="gapHeadline">—</div>
-        <div class="gap-sub" id="gapSub">Сравнение официального числа домов и того, что подтверждается открытыми геоданными.</div>
-        <div class="gap-bar-track"><div class="gap-bar-fill" id="gapBarFill"></div></div>
-        <div class="gap-labels"><span id="gapLeftLabel">OSM</span><span id="gapRightLabel">Акимат</span></div>
-      </div>
-
-      <div class="card">
-        <h2>Официальные данные (акимат)</h2>
-        <div class="stat-row"><span class="label">Многоэтажных домов</span><span class="value">≈ 1 229</span></div>
-        <div class="stat-row"><span class="label">Признаны ветхими</span><span class="value red">582 (≈ 47%)</span></div>
-        <div class="stat-row"><span class="label">Доля ветхого фонда города</span><span class="value">≈ 40%</span></div>
-        <div class="source-note">Заявления акимов Турксибского района, 2026 (Orda.kz) и 2022 (Almaty.tv). Цифры из открытых интервью, не из реестра — сами требуют независимой проверки.</div>
-      </div>
-
-      <div class="card">
-        <h2>Обнаружено в OSM</h2>
-        <div class="stat-row"><span class="label">building=apartments (подтверждённые)</span><span class="value teal" id="statConfirmed">…</span></div>
-        <div class="stat-row"><span class="label">building=residential + этажность (кандидаты)</span><span class="value amber" id="statCandidate">…</span></div>
-        <div class="stat-row"><span class="label">Всего в выборке</span><span class="value" id="statTotal">…</span></div>
-        <div class="stat-row" id="statExcludedRow" style="display:none;"><span class="label">Исключено (1-2 эт., похоже на частный дом)</span><span class="value" id="statExcluded" style="color:var(--text-dim);">…</span></div>
-        <div class="source-note" id="osmNote">Снимок Overpass API на момент открытия страницы. Полнота и точность тегов не гарантированы — это сырые данные сообщества OSM, не верифицированный реестр.</div>
-      </div>
-
-      <div class="card">
-        <h2>Контрольные точки сверки</h2>
-        <div id="checkpointList" style="display:flex; flex-direction:column; gap:6px;"></div>
-        <div class="source-note">Переход приближает карту к точке для сверки с 2ГИС/Яндекс.Картами вручную. Кликни по дому на карте после перехода — попап покажет, как его классифицировал OSM.</div>
-      </div>
-
-      <div class="card">
-        <h2>Легенда</h2>
-        <div class="legend-item"><span class="swatch teal"></span> Подтверждённый МКД (apartments)</div>
-        <div class="legend-item"><span class="swatch amber"></span> Кандидат — требует проверки</div>
-        <div class="legend-item"><span class="swatch line"></span> Граница района</div>
-      </div>
-
-      <div class="card scope-note">
-        <strong>Что это НЕ показывает:</strong> состояние дома (ветхий / не ветхий), сейсмостойкость, реальный статус ОСИ/УК. OSM не хранит техническое состояние здания — именно этот разрыв (кто-то заявляет цифру, но никто её независимо не подтверждает) HouseMaster и предлагает закрыть на уровне района.
-      </div>
+  <div class="panel">
+    <h3>Синхронизация между устройствами</h3>
+    <div class="sub">Нет общего сервера — объединяйте наблюдения вручную, как с отчётами в PWA «Хаузмастер».</div>
+    <div class="btn-row">
+      <button class="btn small" onclick="exportData()">⬇️ Экспорт (файл)</button>
+      <label class="btn small ghost" style="text-align:center;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        ⬆️ Импорт (файл)
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this.files[0])">
+      </label>
     </div>
+    <div class="sync-note">Экспорт сохраняет все дома и claims в один JSON-файл. Импорт на другом устройстве добавляет только новые записи (по id) — уже существующие не дублируются и не перезаписываются.</div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<div class="section-title">Выбранный дом</div>
+<div class="section-sub" id="selectedBuildingLabel">Выберите дом на карте или в списке выше.</div>
+
+<div class="wrap">
+  <div class="panel" id="claimPanel" style="display:none">
+    <div class="field">
+      <label>Пункт осмотра (predicate)</label>
+      <select id="predicateSelect"></select>
+    </div>
+    <div class="field">
+      <label>Результат</label>
+      <select id="valueSelect">
+        <option value="ok">Норма</option>
+        <option value="defect">Дефект</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Заметка</label>
+      <textarea id="noteInput" rows="2" placeholder="Опционально"></textarea>
+    </div>
+    <div class="field">
+      <label>Автор (Actor)</label>
+      <input type="text" id="actorNameInput" placeholder="ФИО">
+    </div>
+    <div class="field">
+      <label>Authority</label>
+      <select id="authoritySelect">
+        <option value="resident">Житель / волонтёр</option>
+        <option value="student">Студент-практикант</option>
+        <option value="professional_verification">Профессиональная верификация (АСТК / наставник)</option>
+        <option value="official_match">Официальный документ / реестр акимата</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Ownership</label>
+      <select id="ownershipSelect">
+        <option value="себя">Автор (без контракта)</option>
+        <option value="ОСИ">ОСИ</option>
+        <option value="УК">УК</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Disclosure scope</label>
+      <select id="disclosureSelect">
+        <option value="private">Private — видно только автору</option>
+        <option value="mesh_shared" selected>Mesh shared — видно участникам пилота</option>
+        <option value="public">Public — видно в публичном слое (HARA)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Фото (Evidence) — с геолокацией устройства</label>
+      <input type="file" id="photoInput" accept="image/*" capture="environment">
+    </div>
+    <div class="field" id="geoPreview" style="display:none">
+      <label>Координаты фото</label>
+      <div style="font-size:12.5px" id="geoPreviewText"></div>
+    </div>
+    <button class="btn" onclick="submitClaim()">Внести claim</button>
+    <div id="claimFormStatus" class="status-box"></div>
+  </div>
+</div>
+
+<div class="section-title">Состояние дома</div>
+<div class="section-sub">Проекция по всем claims на каждый пункт осмотра (Claim Model §8) — не хранимое поле, вычисляется на момент времени T.</div>
+<div class="wrap">
+  <div class="field" style="max-width:280px">
+    <label>Состояние на момент (T) — пусто = сейчас</label>
+    <input type="datetime-local" id="asOfInput" onchange="renderBuildingState(); renderBuildings();">
+  </div>
+  <div id="buildingStateList"></div>
+</div>
+
+<div class="section-title">История (полный лог)</div>
+<div class="section-sub">Сырые записи по порядку внесения — ничего не перезаписывается.</div>
+<div class="wrap"><div id="claimsList"></div></div>
+
 <script>
-const OFFICIAL_TOTAL = 1229;
-const OFFICIAL_DILAPIDATED = 582;
-
-const THEME_KEY = 'turksib_theme';
-const THEME_LABELS = { light: 'Светлая', dark: 'Тёмная', system: 'Система' };
-
-function getStoredThemePref(){
-  try{ return localStorage.getItem(THEME_KEY) || 'system'; } catch(e){ return 'system'; }
-}
-function systemPrefersDark(){
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-function resolveTheme(pref){
-  return pref === 'system' ? (systemPrefersDark() ? 'dark' : 'light') : pref;
-}
-function applyTheme(pref){
-  document.documentElement.setAttribute('data-theme', resolveTheme(pref));
-  try{ localStorage.setItem(THEME_KEY, pref); } catch(e){}
-  renderThemeToggle(pref);
-}
-function renderThemeToggle(activePref){
-  const el = document.getElementById('themeToggle');
-  el.innerHTML = '';
-  ['light', 'dark', 'system'].forEach(pref => {
-    const btn = document.createElement('button');
-    btn.textContent = THEME_LABELS[pref];
-    const isActive = activePref === pref;
-    btn.style.cssText = `border:none; border-radius:4px; padding:5px 10px; cursor:pointer; font-family:inherit; font-size:11px;
-      background:${isActive ? 'var(--teal)' : 'transparent'}; color:${isActive ? '#0d1116' : 'var(--text-dim)'};`;
-    btn.onclick = () => applyTheme(pref);
-    el.appendChild(btn);
-  });
-}
-applyTheme(getStoredThemePref());
-if (window.matchMedia){
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (getStoredThemePref() === 'system') applyTheme('system');
-  });
-}
-
-const map = L.map('map', { zoomControl: true }).setView([43.32, 76.95], 12);
-window.addEventListener('resize', () => map.invalidateSize());
-window.addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 200));
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap &copy; CARTO',
-  maxZoom: 19,
-  className: 'map-base-layer'
-}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
-  maxZoom: 19,
-  className: 'map-labels-layer'
-}).addTo(map);
-
-let userMarker = null, userAccuracyCircle = null;
-
-function setLocateStatus(msg, isError){
-  const el = document.getElementById('locateStatus');
-  el.style.display = msg ? 'block' : 'none';
-  el.textContent = msg || '';
-  el.style.color = isError ? 'var(--red)' : 'var(--text-dim)';
-}
-
-document.getElementById('locateBtn').onclick = () => {
-  setLocateStatus('Определяю местоположение…', false);
-  locateAttempt(true);
-};
-
-function locateAttempt(highAccuracy){
-  map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: highAccuracy, timeout: 20000 });
-}
-
-let triedFallback = false;
-map.on('locationfound', (e) => {
-  triedFallback = false;
-  if (userMarker) map.removeLayer(userMarker);
-  if (userAccuracyCircle) map.removeLayer(userAccuracyCircle);
-  userMarker = L.circleMarker(e.latlng, {
-    radius: 8, color: '#2f7a6e', weight: 2, fillColor: '#4a9b8e', fillOpacity: 0.9
-  }).addTo(map).bindPopup('Вы здесь').openPopup();
-  userAccuracyCircle = L.circle(e.latlng, {
-    radius: e.accuracy, color: '#4a9b8e', weight: 1, fillOpacity: 0.08
-  }).addTo(map);
-  setLocateStatus(`Точность ~${Math.round(e.accuracy)} м`, false);
-});
-
-map.on('locationerror', (e) => {
-  if (!triedFallback){
-    triedFallback = true;
-    setLocateStatus('Точный GPS не успел ответить, пробую по сети…', false);
-    locateAttempt(false);
-    return;
-  }
-  triedFallback = false;
-  let reason = e.message || 'неизвестная ошибка';
-  if (/denied/i.test(reason)) reason = 'доступ к геолокации запрещён в настройках браузера/сайта';
-  if (/timeout/i.test(reason)) reason = 'сигнал не пойман (слабый GPS/сеть) — нажмите кнопку ещё раз, лучше на открытом месте';
-  setLocateStatus('Не удалось определить местоположение: ' + reason, true);
-});
-
-const CHECKPOINTS = [
-  { label: 'Жас Канат — панель, 9 эт., 2 подъезда', lat: 43.309924, lon: 76.973919, zoom: 17 },
-  { label: 'Кайрат (рынок «Жетысу», проверено)', lat: 43.302334, lon: 77.005410, zoom: 16 },
-  { label: 'Алтай-2, дом 19 (жилое ядро, проверено)', lat: 43.351801, lon: 76.990803, zoom: 17 },
-  { label: 'Разведка: аппендикс к Панфилово (пусто на карте)', lat: 43.365, lon: 77.02, zoom: 14 },
-  { label: 'Разведка: юго-запад / Гейт-Сити (кластеры видны)', lat: 43.295, lon: 76.87, zoom: 14 },
-  { label: 'Весь район (обзор)', lat: 43.32, lon: 76.95, zoom: 12 }
+const PREDICATES = [
+  {code:'ROOF-L2-004', label:'Воронка / засор кровли'},
+  {code:'ROOF-L2-007', label:'Примыкание кровли'},
+  {code:'HEAT-L2-001', label:'Недогрев / баланс отопления'},
+  {code:'WATR-L2-002', label:'Слабый напор / нет ГВС'},
+  {code:'SEWR-L2-001', label:'Засор стояка канализации'},
+  {code:'ELEC-L2-002', label:'Нет освещения МОП'},
+  {code:'FACD-L1-001', label:'Трещина в межпанельном шве'},
+  {code:'LIFT-L2-001', label:'Неисправность лифта'},
+  {code:'YARD-L1-001', label:'Разрушение покрытия двора'},
 ];
+const AUTHORITY_LABEL = {
+  certified:'Сертифицирован (АСТК) — legacy', /* back-compat: старые claims до введения professional_verification/official_match */
+  professional_verification:'Профессиональная верификация', official_match:'Официальный документ',
+  student:'Студент', resident:'Житель/волонтёр'
+};
+/* Уровни authority, которые дают институциональную метку. 'certified' — legacy-алиас professional_verification,
+   чтобы полевые данные, внесённые до этого обновления, не потеряли свой trust-статус. */
+const PROFESSIONAL_AUTHORITIES = new Set(['professional_verification','certified']);
+const OFFICIAL_AUTHORITIES = new Set(['official_match']);
 
-function renderCheckpoints(){
-  const list = document.getElementById('checkpointList');
-  list.innerHTML = '';
-  CHECKPOINTS.forEach(cp => {
-    const btn = document.createElement('button');
-    btn.className = 'checkpoint-btn';
-    btn.textContent = cp.label;
-    btn.onclick = () => {
-      map.flyTo([cp.lat, cp.lon], cp.zoom, { duration: 0.8 });
-      document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-    list.appendChild(btn);
-  });
-}
-renderCheckpoints();
+const BUILDINGS_KEY = 'aksai_pilot_buildings_v1';
+const CLAIMS_KEY = 'aksai_pilot_claims_v1';
+/* Версия деплоя. Обновлять вручную при каждом коммите в index.html — простой
+   способ дать контрагентам-тестировщикам понять, на какой итерации они находятся,
+   без build-пайплайна и без CI. Формат: YYYY-MM-DD · короткое описание изменения. */
+const APP_VERSION = '2026-07-18 · computeState: disclosure, retraction, T-срез, official_match';
+const GEO_TOLERANCE_M = 250;
 
-const canvasRenderer = L.canvas({ padding: 0.4 });
+let map, markers = {};
+let pendingCoords = null;
+let selectedBuildingId = null;
+let pendingPhotoGeo = null;
 
-function setLoading(msg){
-  document.getElementById('loading-msg').textContent = msg;
-}
-function setHeaderStatus(msg){
-  document.getElementById('headerStatus').innerHTML = msg;
-}
-function hideLoading(){
-  document.getElementById('loading').classList.add('hidden');
-}
-function showError(msg){
-  const el = document.getElementById('loading');
-  el.innerHTML = `<div class="error-box">
-    <b>Не удалось загрузить данные.</b><br>${msg}
-    <br><button onclick="location.reload()">Повторить попытку</button>
-  </div>`;
+function haversineMeters(lat1, lon1, lat2, lon2){
+  const R = 6371000;
+  const toRad = d => d*Math.PI/180;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-async function fetchWithRetry(url, options = {}, attempts = 3, baseDelayMs = 1500){
-  let lastErr;
-  for (let i = 0; i < attempts; i++){
-    try{
-      const res = await fetch(url, options);
-      if (res.status === 429 || res.status === 504 || res.status === 503){
-        lastErr = new Error(`HTTP ${res.status} (сервер перегружен)`);
-        if (i < attempts - 1){
-          setLoading(`Сервер занят (${res.status}), повтор через ${Math.round(baseDelayMs*(i+1)/1000)}с… попытка ${i+2}/${attempts}`);
-          await new Promise(r => setTimeout(r, baseDelayMs * (i+1)));
-          continue;
-        }
-        throw lastErr;
-      }
-      return res;
-    } catch(e){
-      lastErr = e;
-      if (i < attempts - 1){
-        setLoading(`Сетевая ошибка, повтор через ${Math.round(baseDelayMs*(i+1)/1000)}с… попытка ${i+2}/${attempts}`);
-        await new Promise(r => setTimeout(r, baseDelayMs * (i+1)));
-      }
-    }
-  }
-  throw lastErr;
-}
-
-async function findDistrict(){
-  const queries = [
-    'Турксибский район, Алматы, Казахстан',
-    'Turksib district, Almaty, Kazakhstan'
-  ];
-  const diagnostics = [];
-  for (const q of queries){
-    const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&q=${encodeURIComponent(q)}`;
-    try{
-      const res = await fetchWithRetry(url, { headers: { 'Accept-Language': 'ru' } });
-      if (!res.ok){
-        diagnostics.push(`"${q}" → HTTP ${res.status}`);
-        continue;
-      }
-      const data = await res.json();
-      if (data && data.length && data[0].osm_type === 'relation'){
-        return data[0];
-      }
-      diagnostics.push(`"${q}" → ответ получен, но без relation (${data.length ? data[0].osm_type : 'пусто'})`);
-    } catch(e){
-      diagnostics.push(`"${q}" → сетевая ошибка: ${e.message}`);
-    }
-  }
-  const blocked = diagnostics.some(d => /сетевая ошибка/.test(d));
-  const detail = diagnostics.join(' · ');
-  if (blocked){
-    throw new Error(`Запросы к Nominatim не проходят из текущей среды (${detail}). Это часто означает, что песочница блокирует fetch к внешним API — попробуйте открыть файл через реальный https-хостинг (GitHub Pages) вместо предпросмотра в чате.`);
-  }
-  throw new Error(`Nominatim ответил, но не нашёл район как relation (${detail}). Возможно, изменилось название в OSM — стоит проверить вручную на nominatim.openstreetmap.org.`);
-}
-
-async function fetchBuildings(osmId){
-  const areaId = 3600000000 + Number(osmId);
-  const query = `
-    [out:json][timeout:180];
-    area(${areaId})->.searchArea;
-    (
-      way["building"="apartments"](area.searchArea);
-      way["building"="residential"]["building:levels"](area.searchArea);
-    );
-    out geom;
-  `;
-  const res = await fetchWithRetry('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(query)
-  }, 3, 4000);
-  if (!res.ok) throw new Error('Overpass вернул ошибку ' + res.status);
-  return res.json();
-}
-
-function wayToLatLngs(el){
-  return el.geometry.map(pt => [pt.lat, pt.lon]);
-}
-
-function buildingLabel(tags){
-  const addr = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(' ');
-  const levels = tags['building:levels'] ? `${tags['building:levels']} эт.` : '';
-  return { addr: addr || 'адрес не указан в OSM', levels };
-}
-
-(async function run(){
-  if (window.location.protocol === 'file:'){
-    showError('Страница открыта напрямую с диска (file://). Браузеры блокируют запросы к внешним API с этого протокола. Откройте файл через локальный сервер (например, GitHub Pages, как остальные ваши прототипы) или через вкладку внутри Claude — там сеть работает.');
-    setHeaderStatus('заблокировано протоколом file://');
-    return;
-  }
+/* ===== Хранение: localStorage (нет бэкенда на GitHub Pages) =====
+   Данные живут только на этом устройстве. Для объединения нескольких
+   устройств — Export/Import JSON (см. панель «Синхронизация»). */
+function loadJSON(key, fallback){
   try{
-    setLoading('Определяю границы района через Nominatim…');
-    const district = await findDistrict();
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch(e){ console.error('localStorage read error', e); return fallback; }
+}
+function saveJSON(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch(e){ console.error('localStorage write error', e); return false; }
+}
 
-    if (district.geojson){
-      const boundaryLayer = L.geoJSON(district.geojson, {
-        style: { color: '#93a0ad', weight: 2, fill: false, dashArray: '4 3' }
-      }).addTo(map);
-      map.fitBounds(boundaryLayer.getBounds(), { padding: [20,20] });
+function exportData(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    buildings: loadJSON(BUILDINGS_KEY, []),
+    claims: loadJSON(CLAIMS_KEY, [])
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'aksai_pilot_export_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+}
+
+function importData(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const payload = JSON.parse(e.target.result);
+      const existingBuildings = loadJSON(BUILDINGS_KEY, []);
+      const existingClaims = loadJSON(CLAIMS_KEY, []);
+      const existingBIds = new Set(existingBuildings.map(b=>b.id));
+      const existingCIds = new Set(existingClaims.map(c=>c.id));
+      const newBuildings = (payload.buildings||[]).filter(b=>!existingBIds.has(b.id));
+      const newClaims = (payload.claims||[]).filter(c=>!existingCIds.has(c.id));
+      saveJSON(BUILDINGS_KEY, existingBuildings.concat(newBuildings));
+      saveJSON(CLAIMS_KEY, existingClaims.concat(newClaims));
+      setStatus('formStatus', `Импортировано: ${newBuildings.length} новых домов, ${newClaims.length} новых claims.`, 'ok');
+      renderBuildings();
+      if(selectedBuildingId){ renderBuildingState(); renderClaims(); }
+    } catch(err){
+      setStatus('formStatus', 'Ошибка импорта: файл повреждён или не в нужном формате.', 'error');
     }
+  };
+  reader.readAsText(file);
+}
 
-    setLoading('Запрашиваю здания (Overpass API)… это может занять до минуты для целого района');
-    const data = await fetchBuildings(district.osm_id);
+function setStatus(elId, text, kind){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const styles = {
+    ok:    {color:'#2A5A34', bg:'rgba(84,118,92,.14)',  border:'rgba(84,118,92,.5)'},
+    error: {color:'#7A241D', bg:'rgba(178,58,47,.12)',  border:'rgba(178,58,47,.5)'},
+    info:  {color:'#3A4552', bg:'rgba(90,106,122,.10)', border:'rgba(90,106,122,.4)'}
+  };
+  const s = styles[kind] || styles.info;
+  el.style.color = s.color; el.style.background = s.bg; el.style.border = '1px solid '+s.border;
+  el.style.borderRadius = '6px'; el.style.padding = text ? '8px 10px' : '0'; el.style.fontWeight = '600';
+  el.textContent = text;
+}
 
-    let confirmed = 0, candidate = 0, excludedLowRise = 0;
-
-    data.elements.forEach(el => {
-      if (el.type !== 'way' || !el.geometry || el.geometry.length < 3) return;
-      const tags = el.tags || {};
-      const latlngs = wayToLatLngs(el);
-      const isConfirmed = tags.building === 'apartments';
-      const levels = parseInt(tags['building:levels'], 10);
-
-      if (!isConfirmed){
-        if (isNaN(levels) || levels < 3){
-          excludedLowRise++;
-          return;
-        }
-      }
-
-      if (isConfirmed) confirmed++; else candidate++;
-
-      const { addr, levels: levelsLabel } = buildingLabel(tags);
-      const poly = L.polygon(latlngs, {
-        renderer: canvasRenderer,
-        color: isConfirmed ? '#4a9b8e' : '#c98a3e',
-        weight: 1,
-        dashArray: isConfirmed ? null : '3 2',
-        fillColor: isConfirmed ? '#4a9b8e' : '#c98a3e',
-        fillOpacity: isConfirmed ? 0.55 : 0.28
-      }).addTo(map);
-
-      poly.bindPopup(`
-        <b>${isConfirmed ? 'Подтверждённый МКД' : 'Кандидат (требует проверки)'}</b><br>
-        ${addr}${levelsLabel ? ' · ' + levelsLabel : ''}<br>
-        <span style="color:#93a0ad;">building=${tags.building || '—'}</span>
-      `);
-    });
-
-    document.getElementById('statConfirmed').textContent = confirmed.toLocaleString('ru-RU');
-    document.getElementById('statCandidate').textContent = candidate.toLocaleString('ru-RU');
-    document.getElementById('statTotal').textContent = (confirmed + candidate).toLocaleString('ru-RU');
-    const excludedRow = document.getElementById('statExcludedRow');
-    if (excludedRow){
-      document.getElementById('statExcluded').textContent = excludedLowRise.toLocaleString('ru-RU');
-      excludedRow.style.display = excludedLowRise > 0 ? 'flex' : 'none';
-    }
-
-    const osmDetected = confirmed;
-    const gapPct = Math.round((1 - osmDetected / OFFICIAL_TOTAL) * 100);
-    const gapCard = document.getElementById('gapCard');
-    gapCard.style.display = 'block';
-    document.getElementById('gapHeadline').textContent =
-      (gapPct > 0 ? `−${gapPct}%` : `+${Math.abs(gapPct)}%`) + ' относительно акимата';
-    document.getElementById('gapSub').textContent =
-      `OSM подтверждает ${osmDetected.toLocaleString('ru-RU')} дом(ов) как apartments из заявленных акиматом ≈${OFFICIAL_TOTAL}. Ручная сверка (14.07.2026) нескольких кварталов — Жас Канат, Кайрат, Жулдыз-1 — не нашла пропущенных домов: там, где жильё реально есть, OSM его видит. Разрыв, скорее всего, объясняется не недостачей геоданных, а иной методологией подсчёта акимата (другой год, другая единица учёта, общежития/бараки и т.п.) — но это предположение, а не установленный факт, и требует сверки с официальным реестром, а не только полевых точек.`;
-    const fillPct = Math.max(4, Math.min(100, (osmDetected / OFFICIAL_TOTAL) * 100));
-    requestAnimationFrame(() => {
-      document.getElementById('gapBarFill').style.width = fillPct + '%';
-    });
-    document.getElementById('gapLeftLabel').textContent = `OSM: ${osmDetected}`;
-    document.getElementById('gapRightLabel').textContent = `Акимат: ${OFFICIAL_TOTAL}`;
-
-    setHeaderStatus(`<b>${(confirmed+candidate).toLocaleString('ru-RU')}</b> объектов загружено &nbsp;·&nbsp; снимок Overpass, ${new Date().toLocaleDateString('ru-RU')}`);
-    hideLoading();
-
-  } catch(err){
-    console.error(err);
-    showError(err.message || 'Неизвестная ошибка запроса к Nominatim/Overpass.');
-    setHeaderStatus('ошибка загрузки данных');
+function initMap(){
+  map = L.map('map').setView([43.2305, 76.8340], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+  map.on('click', e=>{
+    pendingCoords = {lat: e.latlng.lat, lng: e.latlng.lng};
+    document.getElementById('latInput').value = e.latlng.lat.toFixed(6);
+    document.getElementById('lngInput').value = e.latlng.lng.toFixed(6);
+    reverseGeocode(e.latlng.lat, e.latlng.lng);
+  });
+  setTimeout(()=>map.invalidateSize(), 300);
+  window.addEventListener('resize', ()=>map.invalidateSize());
+  if('ResizeObserver' in window){
+    new ResizeObserver(()=>map.invalidateSize()).observe(document.getElementById('map'));
   }
-})();
+}
+
+async function reverseGeocode(lat, lng){
+  const addrInput = document.getElementById('addrInput');
+  if(addrInput.value.trim()) return;
+  setStatus('formStatus', 'Ищу адрес по координатам…', 'info');
+  try{
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18`);
+    const data = await res.json();
+    const a = data.address || {};
+    const guess = [a.road, a.house_number].filter(Boolean).join(' ') || null;
+    if(guess){ addrInput.value = guess; setStatus('formStatus', 'Адрес подставлен по OSM — проверьте и поправьте.', 'ok'); }
+    else setStatus('formStatus', 'Адрес не найден в OSM — введите вручную.', 'info');
+  } catch(e){
+    setStatus('formStatus', 'Не удалось получить адрес из OSM — введите вручную.', 'info');
+  }
+}
+
+let osmBuildingsLayer = null;
+async function loadOSMBuildings(){
+  const b = map.getBounds();
+  const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  document.getElementById('osmStatus').textContent = 'Загружаю контуры зданий…';
+  try{
+    const query = `[out:json][timeout:25];way["building"](${bbox});out geom;`;
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(query)
+    });
+    if(!res.ok){
+      const text = await res.text();
+      document.getElementById('osmStatus').textContent = `Overpass ответил ошибкой (${res.status}): ${text.slice(0,120)}`;
+      return;
+    }
+    const data = await res.json();
+    if(osmBuildingsLayer) map.removeLayer(osmBuildingsLayer);
+    const features = (data.elements||[]).filter(el=>el.geometry).map(el=>{
+      const tags = el.tags || {};
+      const street = tags['addr:street'], houseNum = tags['addr:housenumber'];
+      let address = null;
+      if(street && houseNum) address = `${street}, ${houseNum}`;
+      else if(street) address = street;
+      else if(tags.name) address = tags.name;
+      return {type:'Feature', properties:{address, tags}, geometry:{type:'Polygon', coordinates:[el.geometry.map(pt=>[pt.lon, pt.lat])]}};
+    });
+    osmBuildingsLayer = L.geoJSON({type:'FeatureCollection', features}, {
+      style: {color:'#1B3A5C', weight:1, fillColor:'#1B3A5C', fillOpacity:0.12},
+      onEachFeature: (feature, layer)=>{
+        const addr = feature.properties.address;
+        layer.bindTooltip(addr || 'адрес не указан в OSM', {sticky:true});
+        layer.on('mouseover', ()=>layer.setStyle({fillOpacity:0.55, fillColor:'#C9A227', color:'#8a6212', weight:2}));
+        layer.on('mouseout', ()=>layer.setStyle({fillOpacity:0.12, fillColor:'#1B3A5C', color:'#1B3A5C', weight:1}));
+        layer.on('click', (e)=>{
+          L.DomEvent.stopPropagation(e);
+          const center = layer.getBounds().getCenter();
+          pendingCoords = {lat: center.lat, lng: center.lng};
+          document.getElementById('latInput').value = center.lat.toFixed(6);
+          document.getElementById('lngInput').value = center.lng.toFixed(6);
+          if(addr) document.getElementById('addrInput').value = addr;
+          setStatus('formStatus', (addr ? 'Адрес подставлен из OSM.' : 'Адрес в OSM не найден — введите вручную.') + ' Нажмите «Добавить в реестр».', addr?'ok':'info');
+        });
+      }
+    }).addTo(map);
+    document.getElementById('osmStatus').textContent = `Загружено контуров: ${features.length}.`;
+  } catch(e){
+    document.getElementById('osmStatus').textContent = 'Ошибка запроса к Overpass: '+e.message;
+  }
+}
+
+function useGPS(){
+  if(!navigator.geolocation){ setStatus('formStatus', 'Geolocation недоступен на этом устройстве.', 'error'); return; }
+  setStatus('formStatus', 'Определяю местоположение…', 'info');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    pendingCoords = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+    document.getElementById('latInput').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('lngInput').value = pos.coords.longitude.toFixed(6);
+    map.setView([pos.coords.latitude, pos.coords.longitude], 17);
+    setStatus('formStatus', 'Координаты определены по GPS.', 'ok');
+    reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+  }, err=>{
+    setStatus('formStatus', 'Не удалось получить GPS: '+err.message+'. Тапните по карте вручную.', 'error');
+  }, {enableHighAccuracy:true, timeout:10000});
+}
+
+function addBuilding(){
+  const addr = document.getElementById('addrInput').value.trim();
+  if(!addr){ setStatus('formStatus', 'Укажите адрес дома.', 'error'); return; }
+  if(!pendingCoords){ setStatus('formStatus', 'Укажите координаты — тапните по карте или GPS.', 'error'); return; }
+  const buildings = loadJSON(BUILDINGS_KEY, []);
+  buildings.push({
+    id: 'bld_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    address: addr, lat: pendingCoords.lat, lng: pendingCoords.lng,
+    district: 'Ауэзовский', addedAt: new Date().toISOString()
+  });
+  if(!saveJSON(BUILDINGS_KEY, buildings)){ setStatus('formStatus', 'Ошибка сохранения на устройстве.', 'error'); return; }
+  document.getElementById('addrInput').value = '';
+  document.getElementById('latInput').value = '';
+  document.getElementById('lngInput').value = '';
+  pendingCoords = null;
+  setStatus('formStatus', 'Дом добавлен в реестр.', 'ok');
+  renderBuildings();
+}
+
+/* ===== computeState =====
+   Формальный контракт: COMPUTESTATE_FORMAL_SPEC.md + протокол расхождений
+   COMPUTESTATE_SPEC_VS_IMPLEMENTATION_GAP.md. Чистая функция: одинаковый
+   claims-лог + одинаковый T => одинаковый результат, независимо от порядка вызова.
+
+   claims — это единственный append-only лог. Ничего не мутирует и не удаляется:
+   - claim с type:'observation' — обычное наблюдение (предикат, значение, автор)
+   - claim с type:'retraction' — отзывает claim по targetId; сама запись остаётся
+     в истории навсегда, просто исключает целевой claim из текущей проекции
+   T — ISO-строка отсечки по времени. Claims с timestamp > T не участвуют
+   в проекции — это и есть State(subject, T), а не просто State(subject). */
+function independenceKey(c){
+  // Две записи считаются независимой корроборацией, только если различаются
+  // и по автору, и по ownership/организации — иначе это, вероятно, один и тот же
+  // источник, просто повторно внесённый (см. §3 спека, правило независимости).
+  return (c.actor.name||'').trim().toLowerCase()+'|'+(c.ownership||'').trim().toLowerCase();
+}
+function institutionalTierOf(claim){
+  if(OFFICIAL_AUTHORITIES.has(claim.actor.authority)) return 'official';
+  if(PROFESSIONAL_AUTHORITIES.has(claim.actor.authority)) return 'verified';
+  return null;
+}
+function computeState(claims, T){
+  T = T || new Date().toISOString();
+  const visible = claims.filter(c => c.timestamp <= T);
+  const retractedIds = new Set(
+    visible.filter(c=>c.type==='retraction').map(c=>c.targetId)
+  );
+  const active = visible.filter(c => c.type!=='retraction' && !retractedIds.has(c.id));
+
+  const byPredicate = {};
+  active.forEach(c=>{
+    if(!byPredicate[c.predicate]) byPredicate[c.predicate] = {label:c.predicateLabel, list:[]};
+    byPredicate[c.predicate].list.push(c);
+  });
+
+  const result = [];
+  Object.keys(byPredicate).forEach(code=>{
+    const list = byPredicate[code].list.slice().sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+    // Supersession: среди official_match для этого предиката актуален только
+    // последний по времени; более ранние остаются в истории (list), но не
+    // учитываются как действующая институциональная метка.
+    const officialClaims = list.filter(c=>OFFICIAL_AUTHORITIES.has(c.actor.authority));
+    const latestOfficial = officialClaims.length ? officialClaims[officialClaims.length-1] : null;
+    const supersededOfficialIds = new Set(officialClaims.slice(0,-1).map(c=>c.id));
+    const effective = list.filter(c=>!supersededOfficialIds.has(c.id));
+
+    const distinctValues = [...new Set(effective.map(c=>c.value))];
+    const indepKeys = new Set(effective.map(independenceKey));
+    const hasOfficial = !!latestOfficial;
+    const hasProfessional = effective.some(c=>PROFESSIONAL_AUTHORITIES.has(c.actor.authority));
+    const institutionalMark = hasOfficial ? 'official' : (hasProfessional ? 'verified' : null);
+
+    let status, currentValue, sides = null;
+    if(distinctValues.length > 1){
+      // DISPUTED: конфликт не разрешается автоматически, но институциональная
+      // метка каждой стороны сохраняется и видна отдельно — не теряется,
+      // в отличие от прежней реализации (см. п.6 gap-протокола).
+      status = 'disputed'; currentValue = null;
+      sides = distinctValues.map(v=>{
+        const forValue = effective.filter(c=>c.value===v);
+        const latest = forValue[forValue.length-1];
+        const sideOfficial = forValue.some(c=>OFFICIAL_AUTHORITIES.has(c.actor.authority));
+        const sideProfessional = forValue.some(c=>PROFESSIONAL_AUTHORITIES.has(c.actor.authority));
+        return {
+          value: v, latest, supportCount: forValue.length,
+          distinctActorsForValue: new Set(forValue.map(independenceKey)).size,
+          priorMark: sideOfficial ? 'official' : (sideProfessional ? 'verified' : null)
+        };
+      }).sort((a,b)=>new Date(b.latest.timestamp)-new Date(a.latest.timestamp));
+    } else {
+      currentValue = distinctValues[0];
+      // Категориальный порог (§4 спека): накопление corroboration само по себе
+      // никогда не поднимает до verified/official — нужна отдельная институциональная метка.
+      if(institutionalMark === 'official') status = 'official';
+      else if(institutionalMark === 'verified') status = 'verified';
+      else if(indepKeys.size >= 2) status = 'corroborated';
+      else status = 'unverified';
+    }
+    result.push({
+      code, label: byPredicate[code].label, list, status, currentValue, sides,
+      distinctActors: indepKeys.size, institutionalMark,
+      supersededCount: supersededOfficialIds.size
+    });
+  });
+  return result.sort((a,b)=>a.code.localeCompare(b.code));
+}
+function retractClaim(claimId){
+  const claims = loadJSON(CLAIMS_KEY, []);
+  const target = claims.find(c=>c.id===claimId);
+  if(!target || target.type==='retraction') return;
+  claims.push({
+    id: 'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    type: 'retraction', targetId: claimId, buildingId: target.buildingId,
+    actor: target.actor, timestamp: new Date().toISOString()
+  });
+  saveJSON(CLAIMS_KEY, claims);
+  renderBuildingState(); renderBuildings(); renderClaims();
+}
+function currentAsOf(){
+  const raw = document.getElementById('asOfInput') ? document.getElementById('asOfInput').value : '';
+  return raw ? new Date(raw).toISOString() : new Date().toISOString();
+}
+
+function trustBadgeHTML(status){
+  const map = {
+    official:{cls:'trust-official', label:'OFFICIAL'},
+    verified:{cls:'trust-verified', label:'VERIFIED'}, corroborated:{cls:'trust-corroborated', label:'CORROBORATED'},
+    unverified:{cls:'trust-unverified', label:'UNVERIFIED'}, disputed:{cls:'trust-disputed', label:'DISPUTED'}
+  };
+  const m = map[status] || map.unverified;
+  return `<span class="trust-badge ${m.cls}">${m.label}</span>`;
+}
+
+function renderBuildingState(){
+  const el = document.getElementById('buildingStateList');
+  if(!selectedBuildingId){ el.innerHTML=''; return; }
+  const claims = loadJSON(CLAIMS_KEY, []).filter(c=>c.buildingId===selectedBuildingId);
+  const T = currentAsOf();
+  const state = computeState(claims, T);
+  if(!state.length){ el.innerHTML = '<div class="empty-state">Claims ещё не внесены (на выбранный момент T).</div>'; return; }
+  el.innerHTML = state.map(s=>{
+    const supersededNote = s.supersededCount ? `<div class="state-contrib">Замещённых official-записей: ${s.supersededCount} (видны в истории, не в текущей проекции)</div>` : '';
+    if(s.status==='disputed'){
+      return `<div class="state-card disputed">
+        <div class="state-head"><div><div class="code">${s.code}</div><div class="label">${s.label}</div></div>${trustBadgeHTML('disputed')}</div>
+        <div class="value-row">Конфликт: claims расходятся, ни одна сторона не побеждает автоматически.</div>
+        <div class="dispute-sides">
+          ${s.sides.map(side=>`<div class="dispute-side">
+            <div style="display:flex;justify-content:space-between;gap:6px;align-items:center">
+              <b class="${side.value==='ok'?'val-ok':'val-defect'}">${side.value==='ok'?'Норма':'Дефект'}</b>
+              ${side.priorMark ? trustBadgeHTML(side.priorMark) : ''}
+            </div>
+            <div>${side.latest.actor.name} (${AUTHORITY_LABEL[side.latest.actor.authority]})</div>
+            <div style="color:var(--muted)">${new Date(side.latest.timestamp).toLocaleString('ru-RU')}</div>
+            <div style="color:var(--muted);margin-top:3px">Claims: ${side.supportCount} (авторов: ${side.distinctActorsForValue})</div>
+          </div>`).join('')}
+        </div>
+        <div class="state-contrib">Всего claims по пункту: ${s.list.length}</div>
+        ${supersededNote}
+      </div>`;
+    }
+    return `<div class="state-card">
+      <div class="state-head"><div><div class="code">${s.code}</div><div class="label">${s.label}</div></div>${trustBadgeHTML(s.status)}</div>
+      <div class="value-row">Значение: <span class="${s.currentValue==='ok'?'val-ok':'val-defect'}">${s.currentValue==='ok'?'Норма':'Дефект'}</span></div>
+      <div class="state-contrib">Авторов (независимых): ${s.distinctActors} · Claims: ${s.list.length}</div>
+      ${supersededNote}
+    </div>`;
+  }).join('');
+}
+
+function buildingOverallStatus(claims, buildingId, T){
+  const state = computeState(claims.filter(c=>c.buildingId===buildingId), T);
+  if(!state.length) return 'quiet';
+  if(state.some(s=>s.status==='disputed')) return 'disputed';
+  if(state.some(s=>s.status==='official')) return 'official';
+  if(state.some(s=>s.status==='verified')) return 'verified';
+  if(state.some(s=>s.status==='corroborated')) return 'corroborated';
+  return 'unverified';
+}
+const STATUS_MARKER_COLOR = {quiet:'#9C9789', unverified:'#5A6A7A', corroborated:'#2A6E96', verified:'#54765C', official:'#8A6D1F', disputed:'#B23A2F'};
+
+function renderBuildings(){
+  const buildings = loadJSON(BUILDINGS_KEY, []);
+  const claims = loadJSON(CLAIMS_KEY, []);
+  const T = currentAsOf();
+  document.getElementById('buildingCount').textContent = buildings.length;
+  Object.values(markers).forEach(m=>map.removeLayer(m));
+  markers = {};
+  buildings.forEach(b=>{
+    const status = buildingOverallStatus(claims, b.id, T);
+    const isSelected = b.id===selectedBuildingId;
+    const marker = L.circleMarker([b.lat, b.lng], {
+      radius: isSelected?10:8, color: isSelected?'#C9A227':'#1B3A5C', weight: isSelected?3:2,
+      fillColor: STATUS_MARKER_COLOR[status], fillOpacity:0.9
+    }).addTo(map);
+    marker.bindTooltip(`${b.address} — ${status.toUpperCase()}`);
+    marker.on('click', ()=>selectBuilding(b.id));
+    markers[b.id] = marker;
+  });
+  const listEl = document.getElementById('buildingList');
+  listEl.innerHTML = buildings.length ? buildings.map(b=>{
+    const status = buildingOverallStatus(claims, b.id, T);
+    return `<div class="building-item ${b.id===selectedBuildingId?'active':''}" onclick="selectBuilding('${b.id}')">
+      <div class="addr"><span>${b.address}</span><span style="color:${STATUS_MARKER_COLOR[status]};font-family:var(--mono);font-size:9px">${status!=='quiet'?status.toUpperCase():''}</span></div>
+      <div class="meta">${b.district} · ${b.lat.toFixed(5)}, ${b.lng.toFixed(5)}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state">Реестр пуст. Добавьте первый реальный дом.</div>';
+}
+
+function selectBuilding(id){
+  selectedBuildingId = id;
+  const buildings = loadJSON(BUILDINGS_KEY, []);
+  const b = buildings.find(x=>x.id===id);
+  document.getElementById('selectedBuildingLabel').textContent = b ? (b.address+' · '+b.district) : '';
+  document.getElementById('claimPanel').style.display = b ? 'block' : 'none';
+  renderBuildings();
+  renderBuildingState();
+  renderClaims();
+  document.getElementById('claimPanel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function populatePredicates(){
+  document.getElementById('predicateSelect').innerHTML = PREDICATES.map(p=>`<option value="${p.code}">${p.code} — ${p.label}</option>`).join('');
+}
+
+document.getElementById('photoInput').addEventListener('change', function(){
+  pendingPhotoGeo = null;
+  const preview = document.getElementById('geoPreview');
+  const previewText = document.getElementById('geoPreviewText');
+  if(!navigator.geolocation){
+    preview.style.display='block'; previewText.textContent = 'Geolocation недоступен — фото будет без geo-привязки.'; return;
+  }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    pendingPhotoGeo = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+    preview.style.display='block';
+    previewText.textContent = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)} (точность ~${Math.round(pos.coords.accuracy)} м)`;
+  }, err=>{
+    preview.style.display='block'; previewText.textContent = 'Не удалось получить координаты фото: '+err.message;
+  }, {enableHighAccuracy:true, timeout:10000});
+});
+
+function submitClaim(){
+  if(!selectedBuildingId){ setStatus('claimFormStatus', 'Сначала выберите дом.', 'error'); return; }
+  const buildings = loadJSON(BUILDINGS_KEY, []);
+  const building = buildings.find(x=>x.id===selectedBuildingId);
+  const predicateCode = document.getElementById('predicateSelect').value;
+  const p = PREDICATES.find(x=>x.code===predicateCode);
+  const value = document.getElementById('valueSelect').value;
+  const note = document.getElementById('noteInput').value.trim();
+  const actorName = document.getElementById('actorNameInput').value.trim() || 'Не указано';
+  const authority = document.getElementById('authoritySelect').value;
+  const ownership = document.getElementById('ownershipSelect').value;
+  const disclosure = document.getElementById('disclosureSelect').value;
+  const fileInput = document.getElementById('photoInput');
+
+  function finalizeSave(photoDataUrl){
+    let geoConsistent = null, distanceM = null;
+    if(pendingPhotoGeo && building){
+      distanceM = haversineMeters(building.lat, building.lng, pendingPhotoGeo.lat, pendingPhotoGeo.lng);
+      geoConsistent = distanceM <= GEO_TOLERANCE_M;
+    }
+    const claims = loadJSON(CLAIMS_KEY, []);
+    claims.push({
+      id: 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      type: 'observation', /* отличает наблюдение от 'retraction' в том же append-only логе — см. computeState */
+      buildingId: selectedBuildingId, predicate: predicateCode, predicateLabel: p.label, value, note,
+      actor: {name:actorName, authority}, ownership, disclosure,
+      photo: photoDataUrl, evidenceGeo: pendingPhotoGeo, geoConsistent, distanceM,
+      timestamp: new Date().toISOString()
+    });
+    if(!saveJSON(CLAIMS_KEY, claims)){ setStatus('claimFormStatus', 'Ошибка сохранения на устройстве.', 'error'); return; }
+    document.getElementById('noteInput').value = '';
+    document.getElementById('actorNameInput').value = '';
+    fileInput.value = '';
+    pendingPhotoGeo = null;
+    document.getElementById('geoPreview').style.display = 'none';
+    setStatus('claimFormStatus', 'Claim внесён.', 'ok');
+    renderBuildingState(); renderBuildings(); renderClaims();
+  }
+
+  if(fileInput.files && fileInput.files[0]){
+    const reader = new FileReader();
+    reader.onload = ev => finalizeSave(ev.target.result);
+    reader.readAsDataURL(fileInput.files[0]);
+  } else {
+    finalizeSave(null);
+  }
+}
+
+function renderClaims(){
+  const el = document.getElementById('claimsList');
+  if(!selectedBuildingId){ el.innerHTML=''; return; }
+  const all = loadJSON(CLAIMS_KEY, []).filter(c=>c.buildingId===selectedBuildingId);
+  const observations = all.filter(c=>c.type!=='retraction').reverse();
+  const retractedIds = new Set(all.filter(c=>c.type==='retraction').map(c=>c.targetId));
+  if(!observations.length){ el.innerHTML = '<div class="empty-state">Claims по этому дому пока нет.</div>'; return; }
+  el.innerHTML = observations.map(c=>{
+    let geoTag = '<span class="geo-tag geo-none">БЕЗ GEO</span>';
+    if(c.geoConsistent===true) geoTag = `<span class="geo-tag geo-ok">GEO OK (~${Math.round(c.distanceM)} м)</span>`;
+    if(c.geoConsistent===false) geoTag = `<span class="geo-tag geo-bad">GEO НЕ СОВПАДАЕТ (~${Math.round(c.distanceM)} м)</span>`;
+    const isRetracted = retractedIds.has(c.id);
+    const disclosureLabel = {private:'PRIVATE', mesh_shared:'MESH', public:'PUBLIC'}[c.disclosure] || 'PRIVATE';
+    return `<div class="claim-card ${isRetracted?'retracted':''}">
+      <div class="top"><div><span class="code">${c.predicate}</span> — ${c.value==='ok'?'Норма':'Дефект'}${isRetracted?' · ОТОЗВАНО':''}</div>${geoTag}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:4px">${c.actor.name} (${AUTHORITY_LABEL[c.actor.authority]}) · Ownership: ${c.ownership} · <span class="disclosure-tag">${disclosureLabel}</span> · ${new Date(c.timestamp).toLocaleString('ru-RU')}</div>
+      ${c.note?`<div style="margin-top:4px;font-size:13px">«${c.note}»</div>`:''}
+      ${c.photo?`<img class="claim-photo" src="${c.photo}">`:''}
+      ${!isRetracted?`<div class="btn-row"><button class="btn small ghost" onclick="retractClaim('${c.id}')">Отозвать claim</button></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+initMap();
+populatePredicates();
+renderBuildings();
+document.getElementById('versionBadge').textContent = APP_VERSION;
 </script>
+
 </body>
 </html>
